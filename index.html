@@ -217,6 +217,36 @@
   .day-card.done{border-color:#bfe8dd;box-shadow:0 1px 2px rgba(20,30,50,.04),0 6px 20px rgba(31,170,140,.12);}
   .day-card.done .day-badge{background:#e6f6f2;color:#1faa8c;}
 
+  /* 饮食-多行表单 */
+  .form-tip{font-size:12.5px;color:var(--muted);background:var(--bg);border:1px dashed var(--line);border-radius:10px;padding:9px 12px;line-height:1.6;margin-bottom:14px;}
+  .ys-rows{display:flex;flex-direction:column;gap:12px;}
+  .ys-row{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:#fbfdfe;display:flex;flex-direction:column;gap:9px;}
+  .ys-row-top{display:flex;align-items:center;gap:9px;}
+  .ys-name{flex:1;font-size:15px;font-weight:600;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#fff;}
+  .ys-name:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .ys-del{color:var(--muted);font-size:14px;flex:0 0 auto;}
+  .ys-del:hover{background:#fde8e8;color:#e0556e;}
+  .ys-port{font-size:12.5px;color:var(--muted);}
+  .ys-port:empty{display:none;}
+  .ys-port-btns{display:flex;gap:6px;}
+  .ys-port-btns button{font-size:12.5px;padding:5px 12px;border:1px solid var(--line);background:#fff;border-radius:999px;color:var(--muted);cursor:pointer;transition:.15s;}
+  .ys-port-btns button:hover{border-color:var(--accent);}
+  .ys-port-btns button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .ys-row-fields{display:flex;gap:10px;}
+  .ys-wfield,.ys-sfield{flex:1;display:flex;flex-direction:column;gap:5px;}
+  .ys-row-fields label{font-size:12px;color:var(--muted);}
+  .ys-grams,.ys-sweet{font-size:15px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#fff;width:100%;}
+  .ys-grams:focus,.ys-sweet:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .ys-sfield select{appearance:none;-webkit-appearance:none;background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235a616b' d='M6 8 0 0h12z'/%3E%3C/svg%3E") no-repeat right 12px center;}
+  .ys-row-prev{margin-top:2px;}
+
+  /* 饮食-按餐分组列表 */
+  .ys-group{margin-bottom:16px;}
+  .ys-group-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .ys-group-sum{font-size:13px;color:var(--text);font-weight:600;}
+  .ys-group .ys-item{margin-bottom:11px;}
+  .ys-group .ys-item:last-child{margin-bottom:0;}
+
   /* ---------- 定制 ---------- */
   .income-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
   .inc-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;display:flex;flex-direction:column;gap:6px;}
@@ -598,6 +628,8 @@ function zlSet(c){zlFilter=c;zlRender();}
 /* ============ 定制 ============ */
 const INC_KEY='dz_income', DZ_KEY='dz_items';
 let dzFilter='全部', dzIncomeFilter='全部', dzIncomeExpanded=false;
+const INC_TYPES=['定制','网盘','获奖','广告'];
+const INC_TCOL={'定制':'green','网盘':'blue','获奖':'amber','广告':'pink'};
 function dzNowMonth(){return new Date().toISOString().slice(0,7);}
 function renderDingzhi(){
   const inc=LS.get(INC_KEY,[]);
@@ -610,7 +642,7 @@ function renderDingzhi(){
   document.getElementById('income-summary').innerHTML=`
     <div class="inc-card primary"><div class="inc-label">本月收益</div><div class="inc-num">¥${monthTotal.toFixed(2)}</div><div class="inc-sub">${monthInc.length} 笔 · ${dzNowMonth()}</div></div>
     <div class="inc-card"><div class="inc-label">总收益</div><div class="inc-num" style="color:var(--accent)">¥${total.toFixed(2)}</div><div class="inc-sub">${inc.length} 笔累计</div></div>
-    <div class="inc-card"><div class="inc-label">分类明细</div><div class="type-list"><span class="type-item">定制 ¥${byType('定制').toFixed(0)}</span><span class="type-item">网盘 ¥${byType('网盘').toFixed(0)}</span><span class="type-item">获奖 ¥${byType('获奖').toFixed(0)}</span></div><div class="inc-sub">点击下方明细查看</div></div>`;
+    <div class="inc-card"><div class="inc-label">分类明细</div><div class="type-list">${INC_TYPES.map(t=>`<span class="type-item">${t} ¥${byType(t).toFixed(0)}</span>`).join('')}</div><div class="inc-sub">点击下方明细查看</div></div>`;
   // 近 7 天收益趋势
   const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toISOString().slice(0,10));}
   const daySums=days.map(d=>inc.filter(x=>x.date===d).reduce((a,b)=>a+b.amount,0));
@@ -620,10 +652,8 @@ function renderDingzhi(){
   // 收益趋势数据缓存
   window._dzTrendData=days.map((d,i)=>{
     const dayInc=inc.filter(x=>x.date===d);
-    return{date:d,total:daySums[i],items:dayInc,
-      byType:{定制:dayInc.filter(x=>x.type==='定制').reduce((a,b)=>a+b.amount,0),
-        网盘:dayInc.filter(x=>x.type==='网盘').reduce((a,b)=>a+b.amount,0),
-        获奖:dayInc.filter(x=>x.type==='获奖').reduce((a,b)=>a+b.amount,0)}};
+    const byType={};INC_TYPES.forEach(t=>byType[t]=dayInc.filter(x=>x.type===t).reduce((a,b)=>a+b.amount,0));
+    return{date:d,total:daySums[i],items:dayInc,byType};
   });
   // 收益明细
   const incList=(dzIncomeFilter==='本月'?monthInc:inc).slice().sort((a,b)=>b.date.localeCompare(a.date));
@@ -634,7 +664,7 @@ function renderDingzhi(){
   document.getElementById('income-grid').style.display=dzIncomeExpanded?'grid':'none';
   if(!incList.length){ig.innerHTML=`<div class="empty">暂无收益记录<br><p>点右上角「+ 收益」添加，或交付定制单后自动计入</p></div>`;}
   else{ig.innerHTML=incList.map(i=>{
-    const tc=i.type==='定制'?'green':i.type==='网盘'?'blue':'amber';
+    const tc=INC_TCOL[i.type]||'amber';
     return `<div class="card"><div class="top"><h3>¥${i.amount.toFixed(2)}</h3><span class="tag ${tc}">${i.type}</span></div>
       ${i.note?`<div class="desc">${esc(i.note)}</div>`:''}
       <div class="foot"><span class="date">${i.date}</span>${i.fromDz?`<span class="tag indigo">来自定制单</span>`:''}
@@ -718,7 +748,7 @@ function showBarPopup(idx){
   const bars=document.querySelectorAll('#income-trend .tbar');
   const bar=bars[idx];if(!bar)return;
   bar.classList.add('active');
-  const types=['定制','网盘','获奖'];
+  const types=INC_TYPES;
   const typeHtml=types.map(t=>`<div class="pp-type"><span>${t}</span><span>¥${data.byType[t].toFixed(0)}</span></div>`).join('');
   const popup=document.createElement('div');
   popup.className='bar-popup';
@@ -750,18 +780,39 @@ function delDz(id){
 }
 
 /* ============ 饮食 ============ */
+// 每食物：k=每100g热量, s=每100g糖, port=一份参考重量(g/ml), label=一份的描述
+// drink:true 表示按毫升记录; sweet:true 表示奶茶类需选甜度
 const FOOD_DB={
-  '米饭(熟)':{k:116,s:0.1},'白粥':{k:46,s:0.3},'馒头':{k:223,s:1.1},'面条(熟)':{k:110,s:0.5},
-  '面包':{k:265,s:5},'全麦面包':{k:247,s:4},'鸡蛋':{k:144,s:0.4},'鸡胸肉':{k:133,s:0},
-  '牛肉(瘦)':{k:125,s:0},'猪肉(瘦)':{k:143,s:0},'三文鱼':{k:208,s:0},'牛奶':{k:54,s:5},
-  '酸奶(原味)':{k:72,s:4.7},'豆浆':{k:31,s:1},'苹果':{k:52,s:10.4},'香蕉':{k:93,s:12.2},
-  '橙子':{k:47,s:9},'葡萄':{k:69,s:15.5},'草莓':{k:32,s:4.9},'西瓜':{k:30,s:6},
-  '西兰花':{k:34,s:1.7},'番茄':{k:18,s:2.6},'黄瓜':{k:15,s:1.7},'胡萝卜':{k:41,s:4.7},
-  '土豆':{k:77,s:0.8},'红薯':{k:86,s:4.2},'可乐':{k:43,s:10.6},'橙汁':{k:45,s:8.4},
-  '黑咖啡':{k:1,s:0},'巧克力':{k:546,s:51},'饼干':{k:450,s:25},'蛋糕':{k:350,s:30},
-  '冰淇淋':{k:207,s:20},'含糖饮料':{k:45,s:11},'混合坚果':{k:580,s:8},'豆腐':{k:76,s:0.5},
-  '食用油':{k:884,s:0},'白砂糖':{k:387,s:100},'蜂蜜':{k:304,s:82}
+  '米饭(熟)':{k:116,s:0.1,port:150,label:'1碗约150g'},'白粥':{k:46,s:0.3,port:250,label:'1碗约250g'},
+  '馒头':{k:223,s:1.1,port:100,label:'1个约100g'},'面条(熟)':{k:110,s:0.5,port:200,label:'1碗约200g'},
+  '面包':{k:265,s:5,port:40,label:'1片约40g'},'全麦面包':{k:247,s:4,port:40,label:'1片约40g'},
+  '鸡蛋':{k:144,s:0.4,port:50,label:'1个约50g'},'鸡胸肉':{k:133,s:0,port:120,label:'1块约120g'},
+  '牛肉(瘦)':{k:125,s:0,port:100,label:'1份约100g'},'猪肉(瘦)':{k:143,s:0,port:100,label:'1份约100g'},
+  '三文鱼':{k:208,s:0,port:100,label:'1块约100g'},'豆腐':{k:76,s:0.5,port:100,label:'1块约100g'},
+  '牛奶':{k:54,s:5,port:250,label:'1杯约250g',drink:true},'酸奶(原味)':{k:72,s:4.7,port:100,label:'1杯约100g',drink:true},
+  '豆浆':{k:31,s:1,port:250,label:'1杯约250g',drink:true},
+  '苹果':{k:52,s:10.4,port:200,label:'1个约200g'},'香蕉':{k:93,s:12.2,port:120,label:'1根约120g'},
+  '橙子':{k:47,s:9,port:150,label:'1个约150g'},'葡萄':{k:69,s:15.5,port:150,label:'1串约150g'},
+  '草莓':{k:32,s:4.9,port:150,label:'1盒约150g'},'西瓜':{k:30,s:6,port:300,label:'1块约300g'},
+  '西兰花':{k:34,s:1.7,port:100,label:'1份约100g'},'番茄':{k:18,s:2.6,port:150,label:'1个约150g'},
+  '黄瓜':{k:15,s:1.7,port:200,label:'1根约200g'},'胡萝卜':{k:41,s:4.7,port:100,label:'1根约100g'},
+  '土豆':{k:77,s:0.8,port:150,label:'1个约150g'},'红薯':{k:86,s:4.2,port:150,label:'1个约150g'},
+  '可乐':{k:43,s:10.6,port:330,label:'1罐约330ml',drink:true},'橙汁':{k:45,s:8.4,port:250,label:'1杯约250ml',drink:true},
+  '黑咖啡':{k:1,s:0,port:240,label:'1杯约240ml',drink:true},'含糖饮料':{k:45,s:11,port:500,label:'1瓶约500ml',drink:true},
+  '奶茶':{k:55,s:0,port:500,label:'1杯约500ml',drink:true,sweet:true},
+  '巧克力':{k:546,s:51,port:10,label:'1块约10g'},'饼干':{k:450,s:25,port:15,label:'1块约15g'},
+  '蛋糕':{k:350,s:30,port:80,label:'1块约80g'},'冰淇淋':{k:207,s:20,port:50,label:'1球约50g'},
+  '混合坚果':{k:580,s:8,port:25,label:'1把约25g'},
+  '食用油':{k:884,s:0,port:10,label:'1勺约10g'},'白砂糖':{k:387,s:100,port:10,label:'1勺约10g'},'蜂蜜':{k:304,s:82,port:20,label:'1勺约20g'},
+  '辣椒炒肉':{k:180,s:2,port:150,label:'1份约150g'},'水蒸蛋':{k:90,s:1,port:200,label:'1碗约200g'},
+  '番茄炒蛋':{k:110,s:3.5,port:200,label:'1盘约200g'},'清炒时蔬':{k:60,s:2,port:150,label:'1份约150g'},
+  '红烧肉':{k:350,s:5,port:120,label:'1份约120g'},'白灼虾':{k:99,s:0,port:100,label:'1份约100g'},
+  '宫保鸡丁':{k:170,s:6,port:150,label:'1份约150g'},'麻婆豆腐':{k:120,s:3,port:150,label:'1份约150g'},
+  '炒青菜':{k:55,s:1.5,port:150,label:'1份约150g'},'饺子':{k:220,s:3,port:100,label:'1份约100g(5个)'},
+  '包子':{k:220,s:6,port:80,label:'1个约80g'},'馄饨':{k:180,s:2,port:150,label:'1碗约150g'}
 };
+// 奶茶甜度 → 每100ml糖分(g)
+const SWEET={'无糖':0,'三分糖':3,'五分糖':6,'七分糖':9,'全糖':11};
 const YS_KEY='ys_items', YS_TKEY='ys_target', EX_KEY='ex_logs';
 let ysDate=today(), ysMeal='全部';
 let ysTarget=LS.get(YS_TKEY,null)||{kcal:1800,sugar:50};
@@ -866,53 +917,166 @@ function renderYinshi(){
   const list=day.filter(i=>ysMeal==='全部'||i.meal===ysMeal);
   const g=document.getElementById('ys-grid');
   if(!list.length){g.innerHTML=`<div class="empty">这一天还没有记录<br><p>点右上角「+ 记录」添加吃了什么</p></div>`;return;}
-  g.innerHTML=list.map(i=>{
+  const mtColor=meal=>meal==='早餐'?'green':meal==='午餐'?'blue':meal==='晚餐'?'indigo':'amber';
+  const cardOf=i=>{
     const k=Math.round(i.kcal100*i.grams/100), s=(i.sugar100*i.grams/100).toFixed(1);
-    const mt=i.meal==='早餐'?'green':i.meal==='午餐'?'blue':i.meal==='晚餐'?'indigo':'amber';
-    return `<div class="card">
-      <div class="top"><h3>${esc(i.name)}</h3><span class="tag ${mt}">${i.meal}</span></div>
-      <div class="meta"><span class="tag blue">${i.grams} g</span><span class="tag" style="background:var(--amber-soft);color:var(--amber)">${k} kcal</span><span class="tag" style="background:var(--pink-soft);color:var(--pink)">${s} g糖</span></div>
-      <div class="foot"><span class="date">每100g · ${i.kcal100}kcal / ${i.sugar100}g糖</span>
+    const u=i.unit||'g';
+    return `<div class="card ys-item">
+      <div class="top"><h3>${esc(i.name)}</h3></div>
+      <div class="meta"><span class="tag blue">${i.grams} ${u}</span><span class="tag" style="background:var(--amber-soft);color:var(--amber)">${k} kcal</span><span class="tag" style="background:var(--pink-soft);color:var(--pink)">${s} g糖</span></div>
+      <div class="foot"><span class="date">${i.meal}</span>
         <span class="acts"><button class="icon-btn" onclick="openForm('yinshi','${i.id}')">编辑</button><button class="icon-btn" onclick="del('yinshi','${i.id}')">删除</button></span></div>
     </div>`;
-  }).join('');
+  };
+  if(ysMeal!=='全部'){
+    g.innerHTML=list.map(cardOf).join('');
+  }else{
+    g.innerHTML=['早餐','午餐','晚餐','加餐'].map(meal=>{
+      const items=list.filter(i=>i.meal===meal);
+      if(!items.length)return '';
+      const sumK=items.reduce((a,b)=>a+Math.round(b.kcal100*b.grams/100),0);
+      const sumS=items.reduce((a,b)=>a+b.sugar100*b.grams/100,0);
+      return `<div class="ys-group">
+        <div class="ys-group-head"><span class="tag ${mtColor(meal)}">${meal}</span><span class="ys-group-sum">${sumK} kcal · ${sumS.toFixed(0)} g糖</span></div>
+        ${items.map(cardOf).join('')}
+      </div>`;
+    }).join('');
+  }
+}
+function ysRowHtml(p){
+  p=p||{};
+  const opts=Object.keys(FOOD_DB).map(n=>`<option value="${n}">`).join('');
+  const sw=Object.keys(SWEET).map(t=>`<option ${t==='五分糖'?'selected':''}>${t}</option>`).join('');
+  return `<div class="ys-row">
+    <div class="ys-row-top">
+      <input class="ys-name" list="food-list" value="${p.name?esc(p.name):''}" placeholder="食物名，如米饭/苹果/奶茶" oninput="ysAutoFill(this)">
+      <button class="icon-btn ys-del" onclick="ysDelRow(this)" title="删除">✕</button>
+    </div>
+    <div class="ys-port" data-label="${p.portLabel||''}">${p.portLabel?p.portLabel:''}</div>
+    <div class="ys-port-btns" style="${p.portLabel?'':'display:none'}">
+      <button type="button" onclick="ysSetPort(this,0.5)">半份</button>
+      <button type="button" class="on" onclick="ysSetPort(this,1)">1份</button>
+      <button type="button" onclick="ysSetPort(this,1.5)">1.5份</button>
+      <button type="button" onclick="ysSetPort(this,2)">2份</button>
+    </div>
+    <div class="ys-row-fields">
+      <div class="ys-wfield">
+        <label class="ys-wlabel">${p.drink?'毫升(ml)':'重量(g)'}</label>
+        <input class="ys-grams" type="number" min="0" value="${p.grams||''}" placeholder="${p.drink?'500':'150'}" oninput="ysRowPreview(this.closest('.ys-row'))">
+      </div>
+      <div class="ys-sfield" style="${p.sweet?'':'display:none'}">
+        <label>甜度</label>
+        <select class="ys-sweet" onchange="ysRowPreview(this.closest('.ys-row'))">${sw}</select>
+      </div>
+    </div>
+    <input type="hidden" class="ys-k" value="${p.k||''}">
+    <input type="hidden" class="ys-s" value="${p.s||''}">
+    <input type="hidden" class="ys-drink" value="${p.drink?'1':''}">
+    <input type="hidden" class="ys-sweet-flag" value="${p.sweet?'1':''}">
+    <div class="ys-row-prev day-note"></div>
+  </div>`;
 }
 function buildYinshiForm(it){
   const options=['早餐','午餐','晚餐','加餐'].map(m=>`<option ${!it||it.meal===m?'selected':''}>${m}</option>`).join('');
   const opts=Object.keys(FOOD_DB).map(n=>`<option value="${n}">`).join('');
   const m=document.getElementById('modal');
+  const preset=it?{name:it.name,grams:it.grams,drink:it.unit==='ml',k:it.kcal100,s:it.sugar100,
+    portLabel:(FOOD_DB[it.name]?FOOD_DB[it.name].label:''),sweet:(it.name==='奶茶')}:null;
   m.innerHTML=`<h2>${it?'编辑':'记录'}饮食</h2>
     <div class="field-row">
       <div class="field"><label>日期</label><input id="f-date" type="date" value="${it?it.date:ysDate}"></div>
       <div class="field"><label>餐次</label><select id="f-meal">${options}</select></div>
     </div>
-    <div class="field"><label>食物（输入可智能匹配营养）</label><input id="f-name" list="food-list" value="${it?esc(it.name):''}" placeholder="如：米饭、苹果、鸡胸肉" oninput="ysAutoFill()"><datalist id="food-list">${opts}</datalist></div>
-    <div class="field-row">
-      <div class="field"><label>重量 (g)</label><input id="f-grams" type="number" min="0" value="${it?it.grams:''}" placeholder="100" oninput="ysPreview()"></div>
-      <div class="field"><label>每100g 热量</label><input id="f-k" type="number" min="0" value="${it?it.kcal100:''}" placeholder="自动" oninput="ysPreview()"></div>
-      <div class="field"><label>每100g 糖(g)</label><input id="f-s" type="number" min="0" value="${it?it.sugar100:''}" placeholder="自动" oninput="ysPreview()"></div>
-    </div>
-    <div class="day-note" id="ys-prev">预计摄入：— kcal / — g糖</div>
-    <div class="modal-acts"><button class="btn ghost" onclick="closeForm()">取消</button><button class="btn" onclick="saveYs()">保存</button></div>`;
-  if(it) ysPreview();
+    <p class="form-tip">一顿饭可以一次加多样：选好餐次后逐样添加，最后一起保存。饮料选「午餐」就归午餐，选「加餐」就归加餐。</p>
+    <div class="ys-rows" id="ys-rows">${ysRowHtml(preset)}</div>
+    <button type="button" class="btn ghost sm" onclick="ysAddRow()" style="margin:8px 0 12px">+ 再加一样</button>
+    <div id="ys-prev-total" class="day-note" style="font-weight:600;margin-bottom:12px">本餐合计：— kcal / — g糖</div>
+    <div class="modal-acts"><button class="btn ghost" onclick="closeForm()">取消</button><button class="btn" onclick="saveYs()">保存</button></div>
+    <datalist id="food-list">${opts}</datalist>`;
+  const first=m.querySelector('.ys-row'); if(first&&preset) ysRowPreview(first);
 }
-function ysAutoFill(){
-  const n=val('f-name'), db=FOOD_DB[n];
-  if(db){document.getElementById('f-k').value=db.k;document.getElementById('f-s').value=db.s;ysPreview();}
+function ysAddRow(){document.getElementById('ys-rows').insertAdjacentHTML('beforeend',ysRowHtml());}
+function ysDelRow(btn){
+  const rows=document.querySelectorAll('#ys-rows .ys-row');
+  if(rows.length<=1){rows[0].querySelectorAll('input').forEach(i=>i.value='');rows[0].querySelector('.ys-name').focus();return;}
+  btn.closest('.ys-row').remove();ysTotalPreview();
 }
-function ysPreview(){
-  const el=document.getElementById('ys-prev'); if(!el)return;
-  const g=+val('f-grams')||0,k=+val('f-k')||0,s=+val('f-s')||0;
-  el.textContent=`预计摄入：${Math.round(k*g/100)} kcal / ${(s*g/100).toFixed(1)} g糖`;
+function ysAutoFill(input){
+  const row=input.closest('.ys-row');
+  const n=input.value.trim(), db=FOOD_DB[n];
+  const portDiv=row.querySelector('.ys-port'), btns=row.querySelector('.ys-port-btns');
+  const sfield=row.querySelector('.ys-sfield'), wlabel=row.querySelector('.ys-wlabel');
+  const kEl=row.querySelector('.ys-k'), sEl=row.querySelector('.ys-s');
+  const drinkEl=row.querySelector('.ys-drink'), sweetEl=row.querySelector('.ys-sweet-flag');
+  if(db){
+    kEl.value=db.k; sEl.value=db.s;
+    drinkEl.value=db.drink?'1':''; sweetEl.value=db.sweet?'1':'';
+    wlabel.textContent=db.drink?'毫升(ml)':'重量(g)';
+    sfield.style.display=db.sweet?'':'none';
+    if(db.port){
+      portDiv.textContent=db.label; portDiv.dataset.label=db.label;
+      btns.style.display='';
+      row.querySelector('.ys-grams').value=db.port;
+      btns.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.textContent==='1份'));
+    }else{portDiv.textContent='';btns.style.display='none';}
+  }else{
+    portDiv.textContent='';btns.style.display='none';sfield.style.display='none';
+    drinkEl.value='';sweetEl.value='';kEl.value='';sEl.value='';
+  }
+  ysRowPreview(row);
+}
+function ysSetPort(btn,factor){
+  const row=btn.closest('.ys-row');
+  const dbName=row.querySelector('.ys-name').value.trim();
+  const db=FOOD_DB[dbName];
+  if(db&&db.port){row.querySelector('.ys-grams').value=Math.round(db.port*factor);}
+  row.querySelectorAll('.ys-port-btns button').forEach(b=>b.classList.toggle('on',b===btn));
+  ysRowPreview(row);
+}
+function ysRowPreview(row){
+  const k=+row.querySelector('.ys-k').value||0;
+  const grams=+row.querySelector('.ys-grams').value||0;
+  let s=+row.querySelector('.ys-s').value||0;
+  const drink=row.querySelector('.ys-drink').value==='1';
+  if(row.querySelector('.ys-sweet-flag').value==='1'){s=SWEET[row.querySelector('.ys-sweet').value]||0;}
+  const kcal=Math.round(k*grams/100);
+  const sugar=(s*grams/100).toFixed(1);
+  const unit=drink?'ml':'g';
+  row.querySelector('.ys-row-prev').textContent=grams?`≈ ${kcal} kcal / ${sugar} g糖（${grams}${unit}）`:'';
+  ysTotalPreview();
+}
+function ysTotalPreview(){
+  const el=document.getElementById('ys-prev-total'); if(!el)return;
+  let k=0,s=0;
+  document.querySelectorAll('#ys-rows .ys-row').forEach(row=>{
+    const kk=+row.querySelector('.ys-k').value||0;
+    const grams=+row.querySelector('.ys-grams').value||0;
+    let ss=+row.querySelector('.ys-s').value||0;
+    if(row.querySelector('.ys-sweet-flag').value==='1'){ss=SWEET[row.querySelector('.ys-sweet').value]||0;}
+    k+=kk*grams/100; s+=ss*grams/100;
+  });
+  el.textContent=`本餐合计：${Math.round(k)} kcal / ${s.toFixed(1)} g糖`;
 }
 function saveYs(){
-  const name=val('f-name'); if(!name){alert('请填写食物名称');return;}
-  const grams=+val('f-grams'); if(!grams||grams<=0){alert('请填写有效重量');return;}
-  const obj={id:curId||uid(),date:val('f-date')||ysDate,meal:val('f-meal'),name,grams,kcal100:+val('f-k')||0,sugar100:+val('f-s')||0};
+  const date=val('f-date')||ysDate, meal=val('f-meal');
+  const rows=[...document.querySelectorAll('#ys-rows .ys-row')];
   const items=LS.get(YS_KEY,[]);
-  if(curId)items.splice(items.findIndex(x=>x.id===curId),1,obj);else items.unshift(obj);
+  let added=0;
+  for(const row of rows){
+    const name=row.querySelector('.ys-name').value.trim();
+    const grams=+row.querySelector('.ys-grams').value||0;
+    if(!name||!grams){continue;}
+    const k=+row.querySelector('.ys-k').value||0;
+    const drink=row.querySelector('.ys-drink').value==='1';
+    let s=+row.querySelector('.ys-s').value||0;
+    if(row.querySelector('.ys-sweet-flag').value==='1'){s=SWEET[row.querySelector('.ys-sweet').value]||0;}
+    items.unshift({id:uid(),date,meal,name,grams,kcal100:k,sugar100:s,unit:drink?'ml':'g'});
+    added++;
+  }
+  if(!added){alert('请至少填写一样食物和重量/毫升');return;}
   LS.set(YS_KEY,items);closeForm();renderYinshi();
 }
+
 /* ============ 话题（GitHub） ============ */
 let ghLoading=false;
 async function loadTopics(force){
@@ -1051,7 +1215,7 @@ function openForm(mod,id){
     buildYinshiForm(it);
   }else if(mod==='income'){
     const it=id?LS.get(INC_KEY,[]).find(x=>x.id===id):null;
-    const opts=['定制','网盘','获奖'].map(t=>`<option ${!it||it.type===t?'selected':''}>${t}</option>`).join('');
+    const opts=INC_TYPES.map(t=>`<option ${!it||it.type===t?'selected':''}>${t}</option>`).join('');
     m.innerHTML=`<h2>${it?'编辑':'新增'}收益</h2>
       <div class="field-row">
         <div class="field"><label>类型</label><select id="f-type">${opts}</select></div>
